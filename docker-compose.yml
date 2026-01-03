@@ -66,37 +66,32 @@ services:
       timeout: 5s     
       retries: 5       
       start_period: 20s 
-  zookeeper:
-    image: wurstmeister/zookeeper
-    volumes:
-      - zk_data:/data   # named volume for zookeeper data (optional but recommended)
-
   kafka:
-    image: wurstmeister/kafka
-    command: [start-kafka.sh]
+    image: confluentinc/cp-kafka:7.8.3
+    container_name: kafka
     ports:
       - "9092:9092"
-    environment:
-      KAFKA_CREATE_TOPICS: "events:1:1"
-      KAFKA_ADVERTISED_HOST_NAME: localhost
-      KAFKA_LISTENERS: INSIDE://:29092,OUTSIDE://0.0.0.0:9092
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      # KAFKA_LOG_DIRS: /kafka/kafka-logs
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-    healthcheck:
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/29092"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    environment:
+      KAFKA_KRAFT_MODE: 'true'
+
+
+      CLUSTER_ID: '1L6g7nGhU-eAKfL--X25wo'
+      KAFKA_NODE_ID: 1
+
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
 
     volumes:
-      - ./data/kafka:/kafka
-      - /var/run/docker.sock:/var/run/docker.sock
+      - kafka_kraft:/var/lib/kafka/data
     depends_on:
-      - zookeeper
       - spark-worker
   
   spark:
@@ -305,6 +300,6 @@ services:
       - "8500"
 
 volumes:
-  zk_data: 
+  kafka_kraft: 
   pgdata:
   pgdata1:
