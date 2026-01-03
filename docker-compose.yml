@@ -100,7 +100,7 @@ services:
       - spark-worker
   
   spark:
-    image: docker.io/bitnami/spark:4.1
+    image: docker.io/bitnami/spark:3.5.7
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
