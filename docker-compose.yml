@@ -305,7 +305,7 @@ services:
       context: SolarPanel
       dockerfile: Dockerfile
     depends_on:
-      kafka:
+      - kafka
     ports:
       - "8500"
 
