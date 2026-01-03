@@ -306,7 +306,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       kafka:
-        condition: service_healthy
     ports:
       - "8500"
 
