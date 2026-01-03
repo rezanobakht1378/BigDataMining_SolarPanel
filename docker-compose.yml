@@ -113,7 +113,7 @@ services:
       org.apache.spark.deploy.master.Master
 
   spark-worker:
-    build: .
+    build: spark
     container_name: spark-worker
     depends_on:
       - spark-master
