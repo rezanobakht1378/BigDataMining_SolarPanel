@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from confluent_kafka import Producer
 
 # ---------- تنظیمات ----------
-BOOTSTRAP_SERVERS = "localhost:9092"  # مطابق سیستم شما
+BOOTSTRAP_SERVERS = "kafka:9092"  # مطابق سیستم شما
 NUM_PANELS = 3                        # تعداد پنل‌هایی که می‌خواهیم شبیه‌سازی کنیم
 INTERVAL_SEC = 2.0                    # فاصله زمانی بین هر چرخه تولید داده (ثانیه)
 # نام تاپیک‌ها
