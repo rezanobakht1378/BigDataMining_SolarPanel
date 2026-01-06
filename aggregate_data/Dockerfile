@@ -1,49 +1,44 @@
-# Use official Spark image
 FROM apache/spark:3.5.7
 
-# ----------------------------
-# Set environment variables
-# ----------------------------
+
 ENV SPARK_MODE=client
 ENV PYTHONUNBUFFERED=1
 ENV HOME=/opt/spark
 ENV SPARK_USER_HOME=/opt/spark
 ENV IVY_HOME=/opt/spark/.ivy2
+ENV HOME=/opt/spark
+ENV USER=spark
 ENV HADOOP_USER_NAME=spark
-ENV JAVA_TOOL_OPTIONS="-Dcom.sun.security.auth.useFirstPass=true -Dhadoop.security.authentication=simple"
+ENV JAVA_TOOL_OPTIONS="-Dcom.sun.security.auth.useFirstPass=true -Dhadoop.security.authentication=simple -Djava.security.krb5.realm= -Djava.security.krb5.kdc=none"
 
-# ----------------------------
-# Install Python dependencies
-# ----------------------------
 USER root
-RUN pip install --no-cache-dir pyspark kafka-python
 
-# ----------------------------
-# Create spark user and directories
-# ----------------------------
-RUN useradd -m -u 1001 -s /bin/bash spark \
-    && mkdir -p /opt/spark/{app,checkpoints,.ivy2} \
-    && chown -R spark:spark /opt/spark
+RUN pip install --no-cache-dir pyspark kafka-python && \
+    useradd -m -u 1001 -s /bin/bash spark 2>/dev/null || true
 
-# Switch to spark user
-USER spark
+RUN mkdir -p /opt/spark/app \
+    && mkdir -p /opt/spark/checkpoints \
+    && chown -R 1001:1001 /opt/spark \
+    && mkdir -p /opt/spark/.ivy2 \
+    && chown -R 1001:1001 /opt/spark
+
+USER 1001
+
+COPY aggregate_data.py /opt/spark/app/aggregate_data.py
+
 WORKDIR /opt/spark/app
 
-# ----------------------------
-# Copy application
-# ----------------------------
-COPY aggregate_data.py /opt/spark/app/
-
-# ----------------------------
-# Spark-submit command
-# ----------------------------
-CMD ["spark-submit",\
-     "--master", "spark://spark-master:7077",\
-     "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7",\
-     "--conf", "spark.sql.streaming.checkpointLocation=/opt/spark/checkpoints",\
-     "--conf", "spark.sql.shuffle.partitions=4",\
-     "--conf", "spark.streaming.backpressure.enabled=true",\
-     "--conf", "spark.jars.ivy=/opt/spark/.ivy2",\
-     "--conf", "spark.hadoop.security.authentication=simple",\
-     "aggregate_data.py"
+CMD [ \
+  "spark-submit", \
+  "--master", "spark://spark-master:7077", \
+  "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7", \
+  "--conf", "spark.sql.streaming.checkpointLocation=/opt/spark/checkpoints", \
+  "--conf", "spark.sql.shuffle.partitions=4", \
+  "--conf", "spark.streaming.backpressure.enabled=true", \
+  "--conf", "spark.jars.ivy=/opt/spark/.ivy2", \
+  "--conf", "spark.hadoop.security.authentication=simple", \
+  "--conf", "spark.hadoop.security.authorization=false", \
+  "--conf", "spark.driver.extraJavaOptions=-Djava.security.krb5.realm= -Djava.security.krb5.kdc=none", \
+  "--conf", "spark.executor.extraJavaOptions=-Djava.security.krb5.realm= -Djava.security.krb5.kdc=none", \
+  "aggregate_data.py" \
 ]
