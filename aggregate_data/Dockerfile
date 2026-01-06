@@ -8,6 +8,7 @@ ENV SPARK_USER_HOME=/opt/spark
 ENV IVY_HOME=/opt/spark/.ivy2
 ENV HOME=/opt/spark
 ENV USER=spark
+ENV HADOOP_USER_NAME=spark
 
 USER root
 
@@ -35,5 +36,7 @@ CMD [ \
   "--conf", "spark.jars.ivy=/opt/spark/.ivy2", \
   "--conf", "spark.hadoop.security.authentication=simple", \
   "--conf", "spark.hadoop.security.authorization=false", \
+  "--conf", "spark.driver.extraJavaOptions=-Dcom.sun.security.auth.useFirstPass=true", \
+  "--conf", "spark.executor.extraJavaOptions=-Dcom.sun.security.auth.useFirstPass=true", \
   "aggregate_data.py" \
 ]
