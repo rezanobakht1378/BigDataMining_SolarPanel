@@ -3,6 +3,9 @@ FROM apache/spark:3.5.7
 
 ENV SPARK_MODE=client
 ENV PYTHONUNBUFFERED=1
+ENV HOME=/opt/spark
+ENV SPARK_USER_HOME=/opt/spark
+ENV IVY_HOME=/opt/spark/.ivy2
 
 USER root
 
@@ -10,6 +13,8 @@ RUN pip install --no-cache-dir pyspark kafka-python
 
 RUN mkdir -p /opt/spark/app \
     && mkdir -p /opt/spark/checkpoints \
+    && chown -R 1001:1001 /opt/spark \
+    && mkdir -p /opt/spark/.ivy2 \
     && chown -R 1001:1001 /opt/spark
 
 USER 1001
