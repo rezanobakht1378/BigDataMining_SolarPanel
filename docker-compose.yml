@@ -91,8 +91,6 @@ services:
 
     volumes:
       - kafka_kraft:/var/lib/kafka/data
-    depends_on:
-      - spark-worker
   
   spark-master:
     build: spark
@@ -117,6 +115,7 @@ services:
     container_name: spark-worker
     depends_on:
       - spark-master
+      - kafka
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER=spark://spark-master:7077
@@ -308,8 +307,20 @@ services:
       - kafka
     ports:
       - "8500"
+  
+  aggregate_data:
+    restart: always
+    build:
+      context: aggregate_data
+      dockerfile: Dockerfile
+    volumes:
+      - spark_checkpoints:/opt/spark/checkpoints
+    depends_on:
+      - kafka
+      - spark-master
 
 volumes:
   kafka_kraft: 
   pgdata:
   pgdata1:
+  spark_checkpoints:
