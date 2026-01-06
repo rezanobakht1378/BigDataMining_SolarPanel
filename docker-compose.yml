@@ -326,7 +326,7 @@ services:
       dockerfile: Dockerfile
     container_name: monitoring
     ports:
-      - "8501:8000"
+      - "8503:8000"
     depends_on:
       - kafka
       - monitoring_postgres
