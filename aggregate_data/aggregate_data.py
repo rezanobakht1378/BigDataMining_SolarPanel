@@ -102,10 +102,10 @@ query = windowed_stats \
     ) \
     .writeStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("kafka.bootstrap.servers", "172.17.0.1:9092") \
     .option("topic", "kafka_solar_window_stats") \
     .option("checkpointLocation", "/opt/spark/checkpoints/window_stats") \
-    .outputMode("update") \
+    .outputMode("append") \
     .start()
 
 spark.streams.awaitAnyTermination()
