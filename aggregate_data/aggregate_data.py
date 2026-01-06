@@ -8,6 +8,11 @@ from pyspark.sql.functions import from_json, col, window, expr, avg
 spark = SparkSession.builder \
     .appName("SolarPanelStreamingProcessor") \
     .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7") \
+    .config("spark.sql.shuffle.partitions", "2") \
+    .config("spark.hadoop.security.authentication", "simple") \
+    .config("spark.hadoop.security.authorization", "false") \
+    .config("spark.driver.extraJavaOptions", "-Djava.security.krb5.realm= -Djava.security.krb5.kdc=none") \
+    .config("spark.sql.streaming.stateStore.providerClass", "org.apache.spark.sql.execution.streaming.state.HDFSBackedStateStoreProvider") \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("WARN")
