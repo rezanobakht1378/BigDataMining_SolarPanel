@@ -30,5 +30,6 @@ CMD [ \
   "--conf", "spark.sql.streaming.checkpointLocation=/opt/spark/checkpoints", \
   "--conf", "spark.sql.shuffle.partitions=4", \
   "--conf", "spark.streaming.backpressure.enabled=true", \
+  "--conf", "spark.jars.ivy=/opt/spark/.ivy2", \
   "aggregate_data.py" \
 ]
