@@ -9,6 +9,7 @@ ENV IVY_HOME=/opt/spark/.ivy2
 ENV HOME=/opt/spark
 ENV USER=spark
 ENV HADOOP_USER_NAME=spark
+ENV JAVA_TOOL_OPTIONS="-Dcom.sun.security.auth.useFirstPass=true -Dhadoop.security.authentication=simple"
 
 USER root
 
