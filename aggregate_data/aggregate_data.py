@@ -1,3 +1,6 @@
+import os
+os.environ['HADOOP_USER_NAME'] = 'spark'
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, window, expr, avg
 

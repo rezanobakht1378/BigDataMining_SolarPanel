@@ -10,6 +10,9 @@ ENV HOME=/opt/spark
 ENV USER=spark
 ENV HADOOP_USER_NAME=spark
 ENV JAVA_TOOL_OPTIONS="-Dcom.sun.security.auth.useFirstPass=true -Dhadoop.security.authentication=simple -Djava.security.krb5.realm= -Djava.security.krb5.kdc=none"
+ENV HADOOP_USER_NAME=spark \
+    HADOOP_HOME=/opt/spark \
+    HADOOP_CONF_DIR=/opt/spark/conf
 
 USER root
 
