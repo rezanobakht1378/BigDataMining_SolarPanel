@@ -263,6 +263,6 @@ async def get_statistics():
 @app.get("/")
 async def serve_dashboard():
     """Serve the main dashboard"""
-    return FileResponse("monitoring/dashboard.html", media_type="text/html")
+    return FileResponse("dashboard.html", media_type="text/html")
 
 logger.info("Monitoring FastAPI app initialized")
