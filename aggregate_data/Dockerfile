@@ -6,6 +6,8 @@ ENV PYTHONUNBUFFERED=1
 ENV HOME=/opt/spark
 ENV SPARK_USER_HOME=/opt/spark
 ENV IVY_HOME=/opt/spark/.ivy2
+ENV HOME=/opt/spark
+ENV USER=spark
 
 USER root
 
@@ -31,5 +33,7 @@ CMD [ \
   "--conf", "spark.sql.shuffle.partitions=4", \
   "--conf", "spark.streaming.backpressure.enabled=true", \
   "--conf", "spark.jars.ivy=/opt/spark/.ivy2", \
+  "--conf", "spark.hadoop.security.authentication=simple", \
+  "--conf", "spark.hadoop.security.authorization=false", \
   "aggregate_data.py" \
 ]
