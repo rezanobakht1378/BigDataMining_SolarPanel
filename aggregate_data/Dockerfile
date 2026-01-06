@@ -1,4 +1,4 @@
-FROM bitnami/spark:3.5.7
+FROM apache/spark:3.5.7
 
 # Switch to root to install dependencies
 USER root
