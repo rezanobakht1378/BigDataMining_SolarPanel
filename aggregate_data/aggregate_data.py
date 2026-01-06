@@ -62,7 +62,7 @@ enriched_query = enriched_df \
     .selectExpr("to_json(struct(*)) AS value") \
     .writeStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("kafka.bootstrap.servers", "172.17.0.1:9092") \
     .option("topic", "kafka_solar_enriched_features") \
     .option("checkpointLocation", "/opt/spark/checkpoints/enriched") \
     .outputMode("append") \
@@ -94,7 +94,7 @@ query = windowed_stats \
     ) \
     .writeStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("kafka.bootstrap.servers", "172.17.0.1:9092") \
     .option("topic", "kafka_solar_window_stats") \
     .option("checkpointLocation", "/opt/spark/checkpoints/window_stats") \
     .outputMode("update") \
