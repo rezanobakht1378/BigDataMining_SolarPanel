@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Panel Monitoring Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: slideDown 0.6s ease-out;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .stat-card .label {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .unit {
+            color: #999;
+            font-size: 0.85em;
+        }
+        
+        .stat-card.broken {
+            border-left: 5px solid #ff6b6b;
+        }
+        
+        .stat-card.working {
+            border-left: 5px solid #51cf66;
+        }
+        
+        .stat-card.total {
+            border-left: 5px solid #4c6ef5;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+            animation: fadeIn 0.9s ease-out;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .panels-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .panel-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 4px solid #ddd;
+        }
+        
+        .panel-item:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+        
+        .panel-item.broken {
+            background: #ffe6e6;
+            border-left-color: #ff6b6b;
+        }
+        
+        .panel-item.working {
+            background: #e6f7f1;
+            border-left-color: #51cf66;
+        }
+        
+        .panel-info {
+            flex: 1;
+        }
+        
+        .panel-id {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .panel-details {
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .panel-details span {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        .status-badge.broken {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .status-badge.working {
+            background: #51cf66;
+            color: white;
+        }
+        
+        .reason-text {
+            color: #e03131;
+            font-size: 0.8em;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .mini-stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .mini-stat .label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+        
+        .mini-stat .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .mini-stat .unit {
+            color: #999;
+            font-size: 0.75em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .refresh-button {
+            background: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #667eea;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .refresh-button:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>☀️ Solar Panel Monitoring</h1>
+            <p>Real-time detection and monitoring of solar panel health</p>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="statistics" id="statistics">
+            <div class="stat-card loading">Loading statistics...</div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="content">
+            <!-- All Panels Section -->
+            <div class="section">
+                <h2>📊 All Panels</h2>
+                <div id="allPanelsList" class="panels-list">
+                    <div class="loading">Loading panels...</div>
+                </div>
+                <button class="refresh-button" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+            
+            <!-- Broken Panels Section -->
+            <div class="section">
+                <h2>⚠️ Broken Panels</h2>
+                <div id="brokenPanelsList" class="panels-list">
+                    <div class="loading">Loading broken panels...</div>
+                </div>
+                <button class="refresh-button" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-refresh every 5 seconds
+        setInterval(refreshData, 5000);
+        
+        // Initial load
+        refreshData();
+        
+        async function refreshData() {
+            try {
+                // Fetch statistics
+                const statsResponse = await fetch('/api/statistics');
+                const stats = await statsResponse.json();
+                displayStatistics(stats);
+                
+                // Fetch all panels
+                const panelsResponse = await fetch('/api/panels');
+                const panels = await panelsResponse.json();
+                displayAllPanels(panels);
+                
+                // Fetch broken panels
+                const brokenResponse = await fetch('/api/broken-panels');
+                const brokenPanels = await brokenResponse.json();
+                displayBrokenPanels(brokenPanels);
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+        
+        function displayStatistics(stats) {
+            const container = document.getElementById('statistics');
+            
+            const totalCard = `
+                <div class="stat-card total">
+                    <div class="label">Total Panels</div>
+                    <div class="value">${stats.total_panels}</div>
+                </div>
+            `;
+            
+            const brokenCard = `
+                <div class="stat-card broken">
+                    <div class="label">Broken Panels</div>
+                    <div class="value">${stats.broken_panels}</div>
+                </div>
+            `;
+            
+            const workingCard = `
+                <div class="stat-card working">
+                    <div class="label">Working Panels</div>
+                    <div class="value">${stats.working_panels}</div>
+                </div>
+            `;
+            
+            const efficiencyCard = `
+                <div class="stat-card">
+                    <div class="label">Avg Efficiency</div>
+                    <div class="value">${stats.average_efficiency ? stats.average_efficiency.toFixed(2) : 'N/A'}</div>
+                    <div class="unit">%</div>
+                </div>
+            `;
+            
+            const tempCard = `
+                <div class="stat-card">
+                    <div class="label">Avg Temperature</div>
+                    <div class="value">${stats.average_temperature ? stats.average_temperature.toFixed(1) : 'N/A'}</div>
+                    <div class="unit">°C</div>
+                </div>
+            `;
+            
+            container.innerHTML = totalCard + brokenCard + workingCard + efficiencyCard + tempCard;
+        }
+        
+        function displayAllPanels(panels) {
+            const container = document.getElementById('allPanelsList');
+            
+            if (panels.length === 0) {
+                container.innerHTML = '<div class="empty-state">No panels data available yet</div>';
+                return;
+            }
+            
+            let html = '';
+            panels.forEach(panel => {
+                const isBroken = panel.is_broken;
+                const statusClass = isBroken ? 'broken' : 'working';
+                const statusText = isBroken ? '❌ Broken' : '✅ Working';
+                
+                html += `
+                    <div class="panel-item ${statusClass}">
+                        <div class="panel-info">
+                            <div class="panel-id">${panel.panel_id}</div>
+                            <div class="panel-details">
+                                <span>Eff: ${panel.avg_efficiency ? panel.avg_efficiency.toFixed(2) : 'N/A'}%</span>
+                                <span>Temp: ${panel.avg_temperature ? panel.avg_temperature.toFixed(1) : 'N/A'}°C</span>
+                                <span>Irr: ${panel.avg_irradiance ? panel.avg_irradiance.toFixed(0) : 'N/A'} W/m²</span>
+                            </div>
+                            ${isBroken && panel.reason ? `<div class="reason-text">Reason: ${panel.reason}</div>` : ''}
+                        </div>
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function displayBrokenPanels(brokenPanels) {
+            const container = document.getElementById('brokenPanelsList');
+            
+            if (brokenPanels.length === 0) {
+                container.innerHTML = '<div class="empty-state">✨ No broken panels detected!</div>';
+                return;
+            }
+            
+            let html = '';
+            brokenPanels.forEach(panel => {
+                const brokenDate = new Date(panel.broken_since).toLocaleString();
+                
+                html += `
+                    <div class="panel-item broken">
+                        <div class="panel-info">
+                            <div class="panel-id">${panel.panel_id}</div>
+                            <div class="panel-details">
+                                <span>Broken since: ${brokenDate}</span>
+                            </div>
+                            <div class="reason-text">⚠️ ${panel.reason || 'Unknown issue'}</div>
+                            <div class="panel-details" style="margin-top: 5px; font-size: 0.8em;">
+                                <span>Last Eff: ${panel.avg_efficiency ? panel.avg_efficiency.toFixed(2) : 'N/A'}%</span>
+                                <span>Last Temp: ${panel.avg_temperature ? panel.avg_temperature.toFixed(1) : 'N/A'}°C</span>
+                            </div>
+                        </div>
+                        <div class="status-badge broken">BROKEN</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

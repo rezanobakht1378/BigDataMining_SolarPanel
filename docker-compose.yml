@@ -319,6 +319,22 @@ services:
       - kafka
       - spark-master
 
+  monitoring:
+    restart: always
+    build:
+      context: monitoring
+      dockerfile: Dockerfile
+    container_name: monitoring
+    ports:
+      - "8501:8000"
+    depends_on:
+      - kafka
+      - monitoring_postgres
+    volumes:
+      - ./monitoring:/app
+    environment:
+      DATABASE_URL: postgresql://postgres:password@monitoring_postgres:5432/postgres
+
 volumes:
   kafka_kraft: 
   pgdata:
