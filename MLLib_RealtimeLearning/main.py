@@ -181,8 +181,3 @@ def predict(req: PredictRequest, background_tasks: BackgroundTasks):
         timestamp=current_time.isoformat(),
         kafka_sent=kafka_sent
     )
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
