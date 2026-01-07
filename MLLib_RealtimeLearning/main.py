@@ -10,10 +10,10 @@ import random
 import math
 import threading
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import hour, col
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import GBTRegressor
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import GradientBoostingRegressor
+
 
 try:
     from confluent_kafka import Producer
@@ -47,48 +47,44 @@ class PredictResponse(BaseModel):
 app = FastAPI(title="Solar Inference Service (FastAPI)")
 
 
-# Globals to hold Spark/model objects
-_spark = None
-_assembler = None
+# Globals to hold model objects
 _model = None
+_feature_cols = None
 _producer = None
 _retrain_lock = threading.Lock()
 
 
-def create_spark_session():
-    global _spark
-    if _spark is None:
-        # Allow overriding the spark master via environment variable (useful in docker-compose)
-        master = os.environ.get("SPARK_MASTER", "local[*]")
-        print(f"Creating SparkSession with master={master}")
-        _spark = SparkSession.builder.appName("SolarInferenceAPI").master(master).getOrCreate()
-    return _spark
-
-
-def train_mock_model(spark):
-    """Train a small mock GBT model for demo purposes (same logic as previous script)."""
-    data = []
+def train_mock_model():
+    """Train a small mock GradientBoostingRegressor for demo purposes (no Spark)."""
+    rows = []
     start = datetime(2024, 1, 1, 8, 0)
     for i in range(500):
         irr = random.uniform(200, 1000)
         tilt = random.uniform(0, 90)
         factor = math.cos(math.radians(tilt - 30))
         power = (irr * 0.2 * factor) if factor > 0 else 0
-        data.append(("p1", start, irr, power * 0.9, power, 25.0, tilt, 180.0))
+        ts = start
+        hour_val = ts.hour
+        rows.append({
+            "panel_id": "p1",
+            "timestamp": ts,
+            "irradiance_w_m2": irr,
+            "power_ac_w": power * 0.9,
+            "power_dc_w": power,
+            "temperature_c": 25.0,
+            "tilt_deg": tilt,
+            "azimuth_deg": 180.0,
+            "hour": hour_val,
+        })
 
-    schema = ["panel_id", "timestamp", "irradiance_w_m2", "power_ac_w", "power_dc_w", "temperature_c", "tilt_deg", "azimuth_deg"]
-    df = spark.createDataFrame(data, schema=schema)
-    df = df.withColumn("hour", hour("timestamp"))
+    df = pd.DataFrame(rows)
+    feature_cols = ["irradiance_w_m2", "temperature_c", "hour", "tilt_deg", "azimuth_deg"]
+    X = df[feature_cols].values
+    y = df["power_dc_w"].values
 
-    assembler = VectorAssembler(
-        inputCols=["irradiance_w_m2", "temperature_c", "hour", "tilt_deg", "azimuth_deg"],
-        outputCol="features"
-    )
-    train_data = assembler.transform(df)
-
-    gbt = GBTRegressor(featuresCol="features", labelCol="power_dc_w", maxIter=10)
-    model = gbt.fit(train_data)
-    return model, assembler
+    gbr = GradientBoostingRegressor(n_estimators=50)
+    gbr.fit(X, y)
+    return gbr, feature_cols
 
 
 def init_kafka_producer():
@@ -113,25 +109,35 @@ def delivery_report(err, msg):
 
 
 def find_optimal_tilt(irradiance, temp, current_time):
-    global _spark, _assembler, _model
-    candidates = []
-    current_hour = current_time.hour
-    for t in range(0, 65, 5):
-        candidates.append((float(irradiance), float(temp), int(current_hour), float(t), 180.0))
+    global _model, _feature_cols
+    if _model is None:
+        raise RuntimeError("Model not loaded")
 
-    schema_cand = ["irradiance_w_m2", "temperature_c", "hour", "tilt_deg", "azimuth_deg"]
-    df_cand = _spark.createDataFrame(candidates, schema=schema_cand)
-    vec_df = _assembler.transform(df_cand)
-    preds = _model.transform(vec_df)
-    best_row = preds.orderBy(col("prediction").desc()).first()
-    return float(best_row['tilt_deg']), float(best_row['prediction'])
+    current_hour = int(current_time.hour)
+    candidates = []
+    tilts = list(range(0, 65, 5))
+    for t in tilts:
+        candidates.append({
+            "irradiance_w_m2": float(irradiance),
+            "temperature_c": float(temp),
+            "hour": current_hour,
+            "tilt_deg": float(t),
+            "azimuth_deg": 180.0,
+        })
+
+    df_cand = pd.DataFrame(candidates)
+    X = df_cand[["irradiance_w_m2", "temperature_c", "hour", "tilt_deg", "azimuth_deg"]].values
+    preds = _model.predict(X)
+    best_idx = int(np.argmax(preds))
+    best_tilt = float(df_cand.iloc[best_idx]["tilt_deg"])
+    best_pred = float(preds[best_idx])
+    return best_tilt, best_pred
 
 
 @app.on_event("startup")
 def startup_event():
-    global _spark, _model, _assembler, _producer
-    _spark = create_spark_session()
-    _model, _assembler = train_mock_model(_spark)
+    global _model, _feature_cols, _producer
+    _model, _feature_cols = train_mock_model()
     if _HAS_KAFKA:
         _producer = init_kafka_producer()
     print("Startup complete: model trained and ready.")
@@ -209,7 +215,16 @@ def _consume_kafka_messages(topic: str, max_messages: int = 500, timeout: int = 
                 tilt = float(payload.get("tilt_deg", payload.get("tilt", 30.0)))
                 az = float(payload.get("azimuth_deg", payload.get("azimuth", 180.0)))
 
-                records.append((panel_id, ts_val, irr, power_ac, power_dc, temp, tilt, az))
+                records.append({
+                    "panel_id": panel_id,
+                    "timestamp": ts_val,
+                    "irradiance_w_m2": irr,
+                    "power_ac_w": power_ac,
+                    "power_dc_w": power_dc,
+                    "temperature_c": temp,
+                    "tilt_deg": tilt,
+                    "azimuth_deg": az,
+                })
             except Exception as e:
                 print(f"Skipping message due to mapping error: {e}")
                 continue
@@ -226,7 +241,7 @@ def retrain_from_kafka(topic: str, max_messages: int = 500, timeout: int = 15):
     """Consume training data from Kafka and retrain the GBT model in-place.
     Returns a dict with summary info.
     """
-    global _model, _assembler, _spark
+    global _model, _feature_cols
 
     if not _HAS_KAFKA:
         raise RuntimeError("Kafka client not available in this environment")
@@ -236,29 +251,26 @@ def retrain_from_kafka(topic: str, max_messages: int = 500, timeout: int = 15):
         return {"status": "busy", "message": "Retrain already in progress"}
 
     try:
-        # ensure spark session
-        _spark = create_spark_session()
-
         recs = _consume_kafka_messages(topic, max_messages=max_messages, timeout=timeout)
         if not recs:
             return {"status": "no_data", "num_records": 0}
 
-        schema = ["panel_id", "timestamp", "irradiance_w_m2", "power_ac_w", "power_dc_w", "temperature_c", "tilt_deg", "azimuth_deg"]
-        df = _spark.createDataFrame(recs, schema=schema)
-        df = df.withColumn("hour", hour("timestamp"))
+        df = pd.DataFrame(recs)
+        # ensure hour column
+        if "hour" not in df.columns:
+            df["hour"] = df["timestamp"].apply(lambda ts: ts.hour if hasattr(ts, "hour") else datetime.now().hour)
 
-        assembler = VectorAssembler(
-            inputCols=["irradiance_w_m2", "temperature_c", "hour", "tilt_deg", "azimuth_deg"],
-            outputCol="features"
-        )
-        train_data = assembler.transform(df)
+        feature_cols = ["irradiance_w_m2", "temperature_c", "hour", "tilt_deg", "azimuth_deg"]
+        X = df[feature_cols].values
+        y = df["power_dc_w"].values if "power_dc_w" in df.columns else None
+        if y is None or len(y) == 0:
+            return {"status": "no_label", "num_records": len(recs)}
 
-        gbt = GBTRegressor(featuresCol="features", labelCol="power_dc_w", maxIter=10)
-        model = gbt.fit(train_data)
+        gbr = GradientBoostingRegressor(n_estimators=50)
+        gbr.fit(X, y)
 
-        # replace global model safely
-        _model = model
-        _assembler = assembler
+        _model = gbr
+        _feature_cols = feature_cols
 
         return {"status": "retrained", "num_records": len(recs)}
     finally:
@@ -293,7 +305,7 @@ def retrain(background_tasks: BackgroundTasks, topic: Optional[str] = None, max_
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest, background_tasks: BackgroundTasks):
-    if _model is None or _assembler is None or _spark is None:
+    if _model is None:
         raise HTTPException(status_code=503, detail="Model not loaded yet")
 
     current_time = req.timestamp or datetime.now()

@@ -345,11 +345,9 @@ services:
       - "8504:8000"
     depends_on:
       - kafka
-      - spark-master
     volumes:
       - ./MLLib_RealtimeLearning:/app
-    environment:
-      - SPARK_MASTER=spark://172.17.0.1:7077
+    # No Spark dependency: service runs standalone using scikit-learn
 
 volumes:
   kafka_kraft: 
