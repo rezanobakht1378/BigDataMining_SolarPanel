@@ -345,8 +345,11 @@ services:
       - "8504:8000"
     depends_on:
       - kafka
+      - spark-master
     volumes:
       - ./MLLib_RealtimeLearning:/app
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
 
 volumes:
   kafka_kraft: 

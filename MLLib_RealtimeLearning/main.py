@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+import os
 import time
 import json
 import socket
@@ -55,7 +56,10 @@ _producer = None
 def create_spark_session():
     global _spark
     if _spark is None:
-        _spark = SparkSession.builder.appName("SolarInferenceAPI").master("local[*]").getOrCreate()
+        # Allow overriding the spark master via environment variable (useful in docker-compose)
+        master = os.environ.get("SPARK_MASTER", "local[*]")
+        print(f"Creating SparkSession with master={master}")
+        _spark = SparkSession.builder.appName("SolarInferenceAPI").master(master).getOrCreate()
     return _spark
 
 
