@@ -6,11 +6,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
-    openjdk-11-jdk-headless \
+    openjdk-21-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
-# Set JAVA_HOME for PySpark
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+# Set JAVA_HOME for PySpark (OpenJDK 21 package on Debian trixie)
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # Copy requirements and install
