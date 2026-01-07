@@ -346,7 +346,7 @@ services:
     depends_on:
       - kafka
     volumes:
-      - ./realtime_modeling:/app
+      - ./MLLib_RealtimeLearning:/app
 
 volumes:
   kafka_kraft: 
