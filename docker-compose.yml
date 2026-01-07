@@ -338,7 +338,7 @@ services:
   realtime_modeling:
     restart: always
     build:
-      context: monitoring
+      context: MLLib_RealtimeLearning
       dockerfile: Dockerfile
     container_name: realtime_modeling
     ports:
