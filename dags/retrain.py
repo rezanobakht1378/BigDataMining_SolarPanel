@@ -43,7 +43,7 @@ with DAG(
     dag_id="retrain_model",
     default_args=DEFAULT_ARGS,
     description="Trigger retraining of the realtime model via HTTP API",
-    schedule_interval=timedelta(minutes=1),
+    schedule=timedelta(minutes=1),
     start_date=datetime(2025, 1, 1),
     catchup=False,
 ) as dag:
