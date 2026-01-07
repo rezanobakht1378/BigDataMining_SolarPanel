@@ -334,6 +334,19 @@ services:
       - ./monitoring:/app
     environment:
       DATABASE_URL: postgresql://postgres:password@monitoring_postgres:5432/postgres
+  
+  realtime_modeling:
+    restart: always
+    build:
+      context: monitoring
+      dockerfile: Dockerfile
+    container_name: realtime_modeling
+    ports:
+      - "8504:8000"
+    depends_on:
+      - kafka
+    volumes:
+      - ./realtime_modeling:/app
 
 volumes:
   kafka_kraft: 
