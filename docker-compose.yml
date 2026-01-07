@@ -349,7 +349,7 @@ services:
     volumes:
       - ./MLLib_RealtimeLearning:/app
     environment:
-      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_MASTER=spark://172.17.0.1:7077
 
 volumes:
   kafka_kraft: 
